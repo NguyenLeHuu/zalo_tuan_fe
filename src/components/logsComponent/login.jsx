@@ -69,11 +69,11 @@ function Login() {
           setToken(accessToken);
           console.log("login ", response.data.data);
 
-          if (rememberMe) {
-            localStorage.setItem("token", accessToken);
-            localStorage.setItem("user_id", response.data.data.id);
-            localStorage.setItem("user", JSON.stringify(response.data.data));
-          }
+          // if (rememberMe) {
+          localStorage.setItem("token", accessToken);
+          localStorage.setItem("user_id", response.data.data.id);
+          localStorage.setItem("user", JSON.stringify(response.data.data));
+          // }
           setUser(JSON.stringify(response.data.data));
           // dispatch(FetchProfile());
           navigate("/home");

@@ -31,6 +31,9 @@ import {
 } from "phosphor-react";
 import data from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
+import axiosInstance from "../../configs/axios-conf";
+import { useDispatch, useSelector } from "../../redux/store";
+import { FetchGroups } from "../../redux/slices/app";
 
 const StyledInput = styled(TextField)(({ theme }) => ({
   "& .MuiInputBase-input": {
@@ -72,20 +75,28 @@ const Actions = [
   },
 ];
 
-const ChatInput = ({ setOpenPike }) => {
+const ChatInput = ({ msg, setMsg, setOpenPike }) => {
   const [openActions, setOpenActions] = React.useState(false);
+
   return (
     <StyledInput
       fullWidth
       placeholder="Write a message..."
       variant="filled"
+      value={msg}
+      onChange={(e) => setMsg(e.target.value)}
       InputProps={{
         disableUnderline: true,
         startAdornment: (
           <Stack sx={{ width: "max-content" }}>
-            <Stack sx={{ position: "relative", display: openActions ? "inline-block" : "none" }}>
+            <Stack
+              sx={{
+                position: "relative",
+                display: openActions ? "inline-block" : "none",
+              }}
+            >
               {Actions.map((el) => (
-                <Tooltip placement="right"  title= {el.title}>
+                <Tooltip placement="right" title={el.title}>
                   <Fab
                     sx={{
                       position: "absolute",
@@ -99,9 +110,11 @@ const ChatInput = ({ setOpenPike }) => {
               ))}
             </Stack>
             <InputAdornment>
-              <IconButton onClick={() => {
-                setOpenActions((prev) => !prev);
-              }}>
+              <IconButton
+                onClick={() => {
+                  setOpenActions((prev) => !prev);
+                }}
+              >
                 <LinkSimple />
               </IconButton>
             </InputAdornment>
@@ -124,8 +137,44 @@ const ChatInput = ({ setOpenPike }) => {
 };
 
 const Footer = () => {
+  const dispatch = useDispatch();
   const theme = useTheme();
+  React.useEffect(() => {}, [dispatch]);
+  const { curent_id, replyObj } = useSelector((state) => state.app);
   const [openPiker, setOpenPike] = React.useState(false);
+  const [msg, setMsg] = React.useState("");
+  const handeSendMsgGroup = async () => {
+    console.log("reply ", replyObj);
+
+    setMsg("");
+
+    await axiosInstance
+      .post(
+        `/groups/msg/`,
+
+        {
+          groupId: curent_id,
+          sender: window.localStorage.getItem("user_id"),
+          text: msg,
+          type: "Text",
+          replyToTxt: replyObj?.message,
+          replyToId: replyObj?.id,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${window.localStorage.getItem("token")}`,
+          },
+        }
+      )
+      .then((response) => {
+        console.log("response gửi tin nhắn vào nhóm :", response.data);
+        dispatch(FetchGroups());
+      })
+      .catch((error) => {
+        console.log("error :", error);
+      });
+  };
   return (
     <Box
       p={2}
@@ -153,7 +202,8 @@ const Footer = () => {
               onEmojiSelect={console.log}
             />
           </Box>
-          <ChatInput setOpenPike={setOpenPike} />
+          {/* <ChatInput setOpenPike={setOpenPike} /> */}
+          <ChatInput msg={msg} setMsg={setMsg} setOpenPike={setOpenPike} />
         </Stack>
         <Box
           sx={{
@@ -168,7 +218,11 @@ const Footer = () => {
             alignItems="center"
             justifyContent={"center"}
           >
-            <IconButton>
+            <IconButton
+              onClick={() => {
+                handeSendMsgGroup();
+              }}
+            >
               <PaperPlaneTilt color="#fff" />
             </IconButton>
           </Stack>

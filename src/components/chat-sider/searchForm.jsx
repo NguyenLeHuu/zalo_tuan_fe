@@ -13,9 +13,42 @@ import {
 import { CiSearch } from "react-icons/ci";
 import { AiOutlineUserAdd, AiOutlineUsergroupAdd } from "react-icons/ai";
 import { UploadOutlined } from "@ant-design/icons";
-import { useState } from "react";
-
+import React, { useState } from "react";
+import { FetchListUser, AddFriend, FetchGroups } from "../../redux/slices/app";
+import { useDispatch, useSelector } from "react-redux";
+import axiosInstance from "../../configs/axios-conf";
 function SearchForm() {
+  const [name, setName] = useState("");
+  const [image, setImage] = useState("");
+  const dispatch = useDispatch();
+  const [searchResultsVip, setSearchResults] = useState([]);
+
+  const { ListUser } = useSelector((state) => state.app);
+  React.useEffect(() => {
+    dispatch(FetchListUser());
+  }, [dispatch]);
+  React.useEffect(() => {
+    console.log("ds user ", ListUser);
+    const searchResults1 = ListUser?.map((user) => {
+      return {
+        id: user._id,
+        name: user.fullname,
+        avatar: user.photoUrl,
+        isFriend: user.friends?.some(
+          (friendID) => friendID === window.localStorage.getItem("user_id")
+        ),
+        isInvited: user.receivedFriendRequests?.some(
+          (friendID) => friendID === window.localStorage.getItem("user_id")
+        ),
+        hasInvited: user.friendRequests?.some(
+          (friendID) => friendID === window.localStorage.getItem("user_id")
+        ),
+      };
+    });
+    setSearchResults(searchResults1);
+    console.log("ds user mới ", searchResultsVip);
+  }, [ListUser]);
+
   const avatarStyle = {
     margin: "10px 0px 0px 5px",
     border: "0px",
@@ -55,8 +88,45 @@ function SearchForm() {
       ...prevState,
       [index]: !prevState[index],
     }));
+    console.log("mảng user ", selectedCheckbox);
   };
 
+  const createGroup = async (name, image) => {
+    console.log("sắp thêm group: ", name);
+    console.log("sắp thêm group: ", image);
+    await axiosInstance
+      .post(
+        `/groups/groups?name=${name}&uid=${window.localStorage.getItem(
+          "user_id"
+        )}`,
+        {
+          selectedMembers: selectedCheckbox,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${window.localStorage.getItem("token")}`,
+          },
+        }
+      )
+      .then((response) => {
+        console.log("response tạo nhóm :", response.data);
+        dispatch(FetchGroups());
+        setGroupModalVisible(false);
+      })
+      .catch((error) => {
+        console.log("error :", error);
+      });
+  };
+
+  const handleImageUpload = (info) => {
+    if (info.file.status === "done") {
+      setGroupImage(info.file.originFileObj);
+      message.success(`${info.file.name} file uploaded successfully`);
+    } else if (info.file.status === "error") {
+      message.error(`${info.file.name} file upload failed.`);
+    }
+  };
   // Combined data for search results and friend requests
   const searchResults = [
     {
@@ -124,14 +194,32 @@ function SearchForm() {
 
         <List
           itemLayout="horizontal"
-          dataSource={searchResults}
+          // dataSource={searchResults}
+          dataSource={searchResultsVip}
           renderItem={(item) => (
             <List.Item>
               <List.Item.Meta
                 avatar={<Avatar src={item.avatar} />}
                 title={item.name}
               />
-              {!item.isFriend && <Button type="primary">AddFriend</Button>}
+              {item.hasInvited ? (
+                <Button
+                  type="primary"
+                  // onClick={() => dispatch(AddFriend(item.id))}
+                >
+                  Accept
+                </Button>
+              ) : (
+                !item.isFriend &&
+                !item.isInvited && (
+                  <Button
+                    type="primary"
+                    onClick={() => dispatch(AddFriend(item.id))}
+                  >
+                    AddFriend
+                  </Button>
+                )
+              )}
             </List.Item>
           )}
         />
@@ -142,21 +230,25 @@ function SearchForm() {
         onCancel={handleGroupCancel}
         footer={null}
       >
-        <Upload>
+        <Upload beforeUpload={() => false} onChange={handleImageUpload}>
           <Button icon={<UploadOutlined />}>Upload Group Image</Button>
         </Upload>
-        <Input placeholder="Enter group name..." />
+        <Input
+          placeholder="Enter group name..."
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
         <Divider />
         <Input placeholder="Search user..." prefix={<CiSearch />} />
         <Divider />
         <List
           itemLayout="horizontal"
-          dataSource={searchResults}
+          dataSource={searchResultsVip}
           renderItem={(item, index) => (
             <List.Item>
               <Checkbox
-                checked={selectedCheckbox[index]}
-                onClick={() => handleCheckboxClick(index)}
+                checked={selectedCheckbox[item.id]}
+                onClick={() => handleCheckboxClick(item.id)}
               />
               <List.Item.Meta
                 avatar={<Avatar src={item.avatar} />}
@@ -166,7 +258,9 @@ function SearchForm() {
           )}
         />
         <Divider />
-        <Button type="primary">Create Group</Button>
+        <Button type="primary" onClick={() => createGroup(name, image)}>
+          Create Group
+        </Button>
         <Button onClick={handleGroupCancel}>Cancel</Button>
       </Modal>
     </>

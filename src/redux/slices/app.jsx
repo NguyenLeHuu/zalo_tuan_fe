@@ -14,6 +14,10 @@ const initialState = {
   friends: [],
   groups: [],
   friendRequests: [],
+  ListUser: [],
+  nameHeader: "Unknown",
+  curent_id: null,
+  replyObj: null,
 };
 
 const slice = createSlice({
@@ -33,6 +37,18 @@ const slice = createSlice({
     },
     updateChatGroupArr(state, action) {
       state.ChatGroupArr = action.payload.ChatGroupArr;
+    },
+    updateListUser(state, action) {
+      state.ListUser = action.payload.ListUser;
+    },
+    updateNameHeader(state, action) {
+      state.nameHeader = action.payload.nameHeader;
+    },
+    updateCurentId(state, action) {
+      state.curent_id = action.payload.curent_id;
+    },
+    updatereplyObj(state, action) {
+      state.replyObj = action.payload.replyObj;
     },
 
     updateUsers(state, action) {
@@ -106,7 +122,7 @@ export const FetchUsers = () => {
         },
       })
       .then((response) => {
-        console.log("response :", response);
+        // console.log("response :", response);
         dispatch(slice.actions.updateUsers({ users: response.data.data }));
       })
       .catch((error) => {
@@ -127,7 +143,7 @@ export const FetchFriends = () => {
         },
       })
       .then((response) => {
-        console.log("laay ban be :", response.data);
+        // console.log("laay ban be :", response.data);
         dispatch(slice.actions.updateFriends({ friends: response.data }));
       })
       .catch((error) => {
@@ -146,7 +162,7 @@ export const FetchGroups = () => {
         },
       })
       .then((response) => {
-        console.log("lấy nhóm :", response.data.data);
+        // console.log("lấy nhóm :", response.data.data);
         dispatch(slice.actions.updateGroups({ groups: response.data.data }));
       })
       .catch((error) => {
@@ -165,7 +181,7 @@ export const FetchFriendRequests = () => {
         },
       })
       .then((response) => {
-        console.log("response :", response);
+        // console.log("response :", response);
         dispatch(
           slice.actions.updateFriendRequests({ request: response.data.data })
         );
@@ -177,13 +193,13 @@ export const FetchFriendRequests = () => {
 };
 export const FetchChatArrGroup = (req, res) => {
   //cpn msg
-  console.log("req nhóm: ", req.messages);
+  // console.log("req nhóm: ", req.messages);
   return async (dispatch, getState) => {
     dispatch(slice.actions.updateChatArr({ ChatArr: req.messages }));
     // dispatch(slice.actions.updateChatArr({ ChatArr: req }));
   };
 };
-export const FetchChatArr = (to) => {
+export const FetchChatArr = (to, name) => {
   return async (dispatch, getState) => {
     await axiosInstance
       .get(
@@ -204,6 +220,17 @@ export const FetchChatArr = (to) => {
       )
       .then((response) => {
         console.log("cuoc noi chuyen chatArr", response.data);
+        dispatch(
+          slice.actions.updateNameHeader({
+            nameHeader: name,
+          })
+        );
+        dispatch(
+          slice.actions.updateCurentId({
+            curent_id: null,
+          })
+        );
+
         dispatch(slice.actions.updateChatArr({ ChatArr: response.data }));
       })
       .catch((error) => {
@@ -223,14 +250,80 @@ export const FetchChatGroupArr1 = (id) => {
         },
       })
       .then((response) => {
-        console.log("response get tro chuyen nhóm:", response.data);
+        console.log(
+          "response get tro chuyen nhóm:",
+          response.data.data.messages
+        );
 
         dispatch(
+          slice.actions.updateNameHeader({
+            nameHeader: response.data.data.name,
+          })
+        );
+        dispatch(
+          slice.actions.updateCurentId({
+            curent_id: id,
+          })
+        );
+        dispatch(
           slice.actions.updateChatGroupArr({
-            ChatGroupArr: response.data,
+            ChatGroupArr: response.data.data.messages,
           })
         );
         dispatch(slice.actions.clearChatArr({}));
+      })
+      .catch((error) => {
+        console.log("error :", error);
+      });
+  };
+};
+export const FetchListUser = () => {
+  return async (dispatch, getState) => {
+    await axiosInstance
+      .get(`/users`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${window.localStorage.getItem("token")}`,
+        },
+      })
+      .then((response) => {
+        console.log("response search friend by email:", response.data);
+
+        dispatch(
+          slice.actions.updateListUser({
+            ListUser: response.data,
+          })
+        );
+        dispatch(slice.actions.clearChatArr({}));
+      })
+      .catch((error) => {
+        console.log("error :", error);
+      });
+  };
+};
+export const AddFriend = (id) => {
+  return async (dispatch, getState) => {
+    await axiosInstance
+      .post(
+        `/users/sendFriendRequest?senderId=${window.localStorage.getItem(
+          "user_id"
+        )}&receiverId=${id}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${window.localStorage.getItem("token")}`,
+          },
+        }
+      )
+      .then((response) => {
+        console.log("vừa gửi đi lời mời kết bạn:", response.data);
+
+        // dispatch(
+        //   slice.actions.updateListUser({
+        //     ListUser: response.data,
+        //   })
+        // );
+        // dispatch(slice.actions.clearChatArr({}));
       })
       .catch((error) => {
         console.log("error :", error);
@@ -258,7 +351,6 @@ export const removeMessage = (id, groupId) => {
       )
       .then((response) => {
         console.log("xoa tin nhan ", response);
-        dispatch(FetchChatGroupArr1(groupId));
       })
       .catch((error) => {
         console.log("error :", error);
@@ -268,5 +360,11 @@ export const removeMessage = (id, groupId) => {
 export const signOut = () => {
   return async (dispatch, getState) => {
     dispatch(slice.actions.logout());
+  };
+};
+export const updateReplyId = (obj) => {
+  console.log("aaaaaaaaaaaa objreply ", obj);
+  return async (dispatch, getState) => {
+    dispatch(slice.actions.updatereplyObj(obj));
   };
 };

@@ -9,7 +9,7 @@ import {
   LinkMsg,
   DocMsg,
 } from "./MsgTypes";
-import { FetchChatArr } from "../../redux/slices/app";
+import { FetchChatArr, FetchChatGroupArr1 } from "../../redux/slices/app";
 import { useDispatch, useSelector } from "react-redux";
 
 const Message = () => {
@@ -36,6 +36,7 @@ const Message = () => {
           // message: message.startsWith("http") ? "" : message,
           message: message,
           subtype: subtype,
+          isRemove: chat?.isRemove,
           incoming: !chat.fromSelf,
           outgoing: chat.fromSelf,
         };
@@ -44,12 +45,43 @@ const Message = () => {
       setChatHistory1(newarr);
     }
   }, [ChatArr]);
+  React.useEffect(() => {
+    if (ChatGroupArr != null) {
+      const newarr1 = ChatGroupArr.map((chat) => {
+        console.log("chat ", chat);
+        console.log("user_id ", window.localStorage.getItem("user_id"));
+        let message = chat.text;
+        let subtype = "msg";
+
+        // Check if the message is a link
+        if (message.startsWith("http")) {
+          subtype = "img";
+        }
+        return {
+          type: "msg",
+          id: chat._id,
+          // message: message.startsWith("http") ? "" : message,
+          message: message,
+          subtype: subtype,
+          isRemove: chat?.isRemove,
+          incoming: !(chat.sender === window.localStorage.getItem("user_id")),
+          outgoing: chat.sender === window.localStorage.getItem("user_id"),
+        };
+      });
+      console.log("chatHistory2 ", newarr1);
+      setChatHistory1(newarr1);
+    }
+  }, [ChatGroupArr]);
 
   return (
     <Box p={3}>
       <Stack spacing={3}>
         {chatHistory1?.map((el) => {
           // {Chat_History?.map((el) => {
+          if (el.isRemove) {
+            el.message = "Tin nhắn đã thu hồi";
+          }
+
           switch (el.type) {
             case "divider":
               //Timeline

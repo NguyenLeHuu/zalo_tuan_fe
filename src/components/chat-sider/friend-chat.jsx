@@ -72,7 +72,7 @@ const ChatElement = ({
       onClick={() => {
         if (type_chat === "chat") {
           console.log("nhấn vào thằng ", _id);
-          dispatch(FetchChatArr(_id));
+          dispatch(FetchChatArr(_id, fullname));
         } else {
           console.log("nhấn vào nhóm ", _id);
           dispatch(FetchChatGroupArr1(_id));
@@ -136,7 +136,7 @@ const ChatListElement = () => {
       ))}
 
       {Array.isArray(groups) && groups.length > 0 ? (
-        groups.map((group) => (
+        groups?.map((group) => (
           <ChatElement key={group.id} {...group} type_chat="chatGroup" />
         ))
       ) : (
